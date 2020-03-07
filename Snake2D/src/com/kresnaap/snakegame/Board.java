@@ -1,0 +1,895 @@
+package com.kresnaap.snakegame;
+ 
+import java.awt.Graphics2D;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Scanner;
+
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+import javax.swing.Timer;
+
+import sun.audio.AudioPlayer;
+import sun.audio.AudioStream;
+import sun.audio.ContinuousAudioDataStream;
+ 
+public class Board extends JPanel implements ActionListener {
+    /**
+     *
+     */
+    private static final long serialVersionUID = 1L;
+ 
+    private final int N_BLOCKS = 20;
+    private final int BLOCK_SIZE = 23;
+    private final int SCREEN_SIZE = N_BLOCKS * BLOCK_SIZE;
+    private final Font smallFont = new Font("Helvetica", Font.BOLD, 25);
+    private final int B_WIDTH = 500;
+    private final int B_HEIGHT = 500;
+    private final int DOT_SIZE = 10;
+    private final int ALL_DOTS = 900;
+    private final int RAND_POS = 41;
+    private final int DELAY = 150;
+    private final int SPRINT = 70;
+ 
+    private final int x[] = new int[ALL_DOTS];
+    private final int y[] = new int[ALL_DOTS];
+    private final int obsX[] = new int[20];
+    private final int obsY[] = new int[20];
+    private final int obsXP[] = new int[299];
+    private final int obsYP[] = new int[299];
+
+    private int dots;
+    private int apple_x;
+    private int apple_y;
+    private int score;
+    private int gold;
+    private int blue;
+    private int health;
+    private int obs_x;
+    private int obs_y;
+    private int typeG;
+
+    private boolean leftDirection = false;
+    private boolean rightDirection = true;
+    private boolean upDirection = false;
+    private boolean downDirection = false;
+    public boolean inGame = false;
+    public boolean inMenu = true;
+    public boolean inHs = false;
+    private boolean onFire = false;
+    private boolean slowMotion = false;
+
+    private Timer timer;
+    private Image ball;
+    private Image head;
+    private Image apple;
+    private Image g_apple;
+    private Image b_pill;
+    private Image header;
+    private Image backGroundGame;
+    private Image obstacle;
+    private Image obstacle2;
+    private Image gameOverText;    
+
+
+    private TimeCounter timeCounter;
+
+    private Menu menu;
+
+    private NormalHs normalhs;
+    private TimeHs timehs;
+    
+    public Board() {
+
+        initBoard();
+    }
+
+    private void initBoard() {
+
+        addKeyListener(new TAdapter());
+        addMouseListener(new MouseInput());
+
+        setBackground(Color.black);
+        setFocusable(true);
+
+        setPreferredSize(new Dimension(B_WIDTH, B_HEIGHT));
+        loadImages();
+        backgroundMusic();
+
+        menu = new Menu();
+
+        normalhs = new NormalHs();
+        timehs = new TimeHs();
+        
+        initGame();
+    }
+
+    private void loadImages() {
+
+        final ImageIcon iid = new ImageIcon("src/resources/images/dot.png");
+        ball = iid.getImage();
+
+        final ImageIcon iih = new ImageIcon("src/resources/images/righthead.png");
+        head = iih.getImage();
+        
+        final ImageIcon iia = new ImageIcon("src/resources/images/apple.png");
+        apple = iia.getImage();
+
+        final ImageIcon iig = new ImageIcon("src/resources/images/gold_apple.png");
+        g_apple = iig.getImage();
+        
+        final ImageIcon iiba = new ImageIcon("src/resources/images/blue_pill.png");
+        b_pill = iiba.getImage();
+
+        final ImageIcon iio = new ImageIcon("src/resources/images/obstacle1.png");
+        obstacle = iio.getImage();
+        
+        final ImageIcon iib = new ImageIcon("src/resources/images/backgroundgame.png");
+        backGroundGame = iib.getImage();
+
+        final ImageIcon iiheader = new ImageIcon("src/resources/images/header.png");
+        header = iiheader.getImage();
+
+        final ImageIcon iiob = new ImageIcon("src/resources/images/obstacle2.png");
+        obstacle2 = iiob.getImage();
+
+        final ImageIcon iigo = new ImageIcon("src/resources/images/gameover.png");
+        gameOverText = iigo.getImage();
+              
+    }
+
+    private void backgroundMusic() {
+
+        final AudioPlayer MGP = AudioPlayer.player;
+        AudioStream BGM;
+
+        final ContinuousAudioDataStream loop = null;
+
+        try {
+            final InputStream BGMfile = new FileInputStream("src/resources/music/background.wav");
+            BGM = new AudioStream(BGMfile);
+            AudioPlayer.player.start(BGM);
+        } catch (final FileNotFoundException e) {
+            System.out.print(e.toString()); 
+        } catch (final IOException error) {
+            System.out.print(error.toString());
+        }
+
+        MGP.start(loop);
+    }
+
+    private void initGame() {
+
+        if (inGame == true && inMenu == false) {
+            timeCounter = new TimeCounter(0, 0, 0);
+            score = 0;
+            dots = 3;
+            gold = 7;
+            blue = 5;
+            health = 150;
+
+            for (int z = 0; z < dots; z++) {
+
+                x[z] = 50 - z * 10;
+                y[z] = 80;
+            }
+
+            if (typeG == 1)
+            {
+            	for (int i = 0; i < 20; i++) {
+                    obsX[i] = 0;
+                    obsY[i] = 0;
+                }
+            }
+            else if (typeG == 2)
+            {
+            	obsXP[0] = 0;
+                obsYP[0] = 70;
+            	for (int i = 1; i < 43; i++) {
+            		
+                    obsXP[i] = 0;
+                    obsYP[i] = obsYP[i - 1] + 10;
+                }
+            	for (int i = 43; i < 92; i++) {
+            		
+                    obsXP[i] = obsXP[i - 1] + 10;
+                    obsYP[i] = 70;
+                }
+            	for (int i = 92; i < 134; i++) {
+            		
+                    obsXP[i] = obsXP[i - 1];
+                    obsYP[i] = obsYP[i - 1] + 10;
+                }
+            	for (int i = 134; i < 182; i++) {
+            		
+                    obsXP[i] = obsXP[i - 1] - 10;
+                    obsYP[i] = obsYP[i - 1];
+                }
+                for (int i = 182; i < 209; i++) {
+                	
+                    obsXP[i] = obsXP[i - 37] + 10;
+                    obsYP[i] = 200;
+                }
+                for (int i = 209; i < 236; i++) {
+                	
+                    obsXP[i] = obsXP[i - 64] + 10;
+                    obsYP[i] = 210;
+                }
+                for (int i = 236; i < 263; i++) {
+                	
+                    obsXP[i] = obsXP[i - 91] + 10;
+                    obsYP[i] = 350;
+                }
+                for (int i = 263; i < 290; i++) {
+                	
+                    obsXP[i] = obsXP[i - 118] + 10;
+                    obsYP[i] = 360;
+                }
+                for (int i = 290; i < 299; i++) {
+                	
+                    obsXP[i] = obsXP[i - 71] + 10;
+                    obsYP[i] = 280;
+                }
+            }
+
+            locateApple();
+
+            timer = new Timer(DELAY, this);
+            timer.start();
+        }
+    }
+
+    @Override
+    public void paintComponent(final Graphics g) {
+        super.paintComponent(g);
+
+        doDrawing(g);
+    }
+
+    private void doDrawing(final Graphics g) { // Drawing the snake
+
+        final Graphics2D g2d = (Graphics2D) g;
+
+        if (inMenu) {
+
+             menu.render(g);
+   
+        } else {
+        
+            if (inGame) {
+
+                g.setColor(Color.white);
+                g.drawRect(0, 70, 498, 430);
+
+                g.drawImage(header, 0, 0, 500, 70, this); 
+
+                if (typeG == 1) {
+
+                    g.drawImage(backGroundGame, 0, 70, 500, 500, this);
+                    drawScore(g2d);
+                    drawHealth(g2d);
+
+                    if (dots == gold) {
+
+                    	System.out.println("Gold " + gold);
+                        g.drawImage(g_apple, apple_x, apple_y, this);
+                    } 
+                    else if(dots == blue)
+                    {
+                    	
+                    	System.out.println("Blue " + blue);
+                    	g.drawImage(b_pill, apple_x, apple_y, this);
+                    }
+                    else {
+                    	
+                    	System.out.println("Normal " + dots);
+                        g.drawImage(apple, apple_x, apple_y, this);
+                    }
+
+                    if (score >= 1) {
+                        for (int a = 0; a < 20; a++) {
+                        	
+                            g.drawImage(obstacle, obsX[a], obsY[a], this);
+                        }
+                    }
+
+                    for (int z = 0; z < dots; z++) {
+
+                        if (z == 0) {
+
+                            g.drawImage(head, x[z], y[z], this);
+                        } else {
+
+                            g.drawImage(ball, x[z], y[z], this);
+                        }
+                    }
+                }
+
+                else if (typeG == 2) {
+
+                    drawTimeCounter(g2d);
+                    drawScore(g2d);
+
+                    if (dots == gold - 1) {
+
+                        g.drawImage(g_apple, apple_x, apple_y, this);
+                    } else {
+
+                        g.drawImage(apple, apple_x, apple_y, this);
+                    }
+
+                    for (int a = 0; a < 299; a++) {
+//                    	if(obsXP[a] == 0 && obsYP[a] == 0)
+//                    	{
+//                    		System.out.println(a + " error");
+//                    	}
+                        g.drawImage(obstacle2, obsXP[a], obsYP[a], this);
+                    }
+                    
+                    for (int z = 0; z < dots; z++) {
+                        if (z == 0) {
+
+                            g.drawImage(head, x[z], y[z], this);
+                        } else {
+
+                            g.drawImage(ball, x[z], y[z], this);
+                        }
+                    }
+                }
+
+                Toolkit.getDefaultToolkit().sync();
+
+            } else {
+
+            	timer.stop();					// Matikan Game Loop
+                gameOver(g);
+                     
+//                System.out.print(inGame);
+//                System.out.print(inMenu);
+            }
+        }
+    }
+
+    private void drawScore(final Graphics2D g) {
+    	
+        String s;
+
+        g.setFont(smallFont);
+        g.setColor(new Color(0, 0, 0));
+        s = "Score: " + score;
+        g.drawString(s, SCREEN_SIZE / 7, SCREEN_SIZE / 10);
+    }
+
+    private void drawHealth(final Graphics2D g) {
+    	
+        String h;
+
+        if (health > 100) {
+
+            g.setColor(new Color(96, 128, 255));
+        } else if (health > 50 && health <= 100) {
+
+            g.setColor(new Color(255, 255, 0));
+        } else {
+
+            g.setColor(new Color(255, 0, 0));
+        }
+
+        g.drawRect(290, 27, 150, 20);
+        g.fillRect(290, 27, health, 20);
+        
+        h = "Health: ";
+        g.drawString(h, SCREEN_SIZE / 4 + 85, SCREEN_SIZE / 10);
+    }
+
+    private void drawTimeCounter(final Graphics2D g) {
+    	
+        String ts;
+
+        g.setFont(smallFont);
+        g.setColor(new Color(96, 128, 255));
+        ts = "Time: " + timeCounter.result();
+        g.drawString(ts, SCREEN_SIZE / 5 + 160, SCREEN_SIZE / 10);
+    }
+    
+    private void gameOver(final Graphics g) { // Game Over UI
+
+    	final Font small = new Font("Helvetica", Font.BOLD, 20);
+    	final FontMetrics metr = getFontMetrics(small);
+    	g.setColor(Color.white);
+        g.setFont(small);
+    	
+    	final String retry = "Press Spacebar to retry";
+    	
+        String input;
+    	
+        if (typeG == 1) {
+
+            g.drawImage(gameOverText, 170, 170, this);
+            final String msg1 = "Score : " + score;
+            
+            if (score < 10) {
+
+                g.drawString(msg1, (B_WIDTH - metr.stringWidth(msg1)) / 2, B_HEIGHT / 2);
+            } else if (score < 100 && score > 10) {
+
+                g.drawString(msg1, (B_WIDTH - metr.stringWidth(msg1)) / 2 - 5, B_HEIGHT / 2);
+            } else {
+
+                g.drawString(msg1, (B_WIDTH - metr.stringWidth(msg1)) / 2 - 10, B_HEIGHT / 2);
+            }
+            
+            g.drawString(retry, (B_WIDTH - metr.stringWidth(retry)) / 2 , (B_HEIGHT / 2) + 50);
+            
+            Scanner keyboard = new Scanner(System.in);
+            System.out.println("You lose.");
+            System.out.println("Please input your name: ");
+            input = "\n" + keyboard.nextLine() + " " + score;
+            normalhs.inputData(input);
+            keyboard.close();
+            
+            normalhs.getData();
+            normalhs.renderGame(g);
+        }
+
+        else if (typeG == 2) {
+
+            final String msg1 = "Score : " + score + "    Time: " + timeCounter.result();
+
+            g.drawImage(gameOverText, 170, 170, this);
+            
+            if (score < 10) {
+
+                g.drawString(msg1, (B_WIDTH - metr.stringWidth(msg1)) / 2, B_HEIGHT / 2 + 40);
+            } else if (score < 100 && score > 10) {
+
+                g.drawString(msg1, (B_WIDTH - metr.stringWidth(msg1)) / 2 - 5, B_HEIGHT / 2 + 40);
+            } else {
+
+                g.drawString(msg1, (B_WIDTH - metr.stringWidth(msg1)) / 2 - 10, B_HEIGHT / 2 + 40);
+            }
+            
+            g.drawString(retry, (B_WIDTH - metr.stringWidth(retry)) / 2 , (B_HEIGHT / 2) + 90);
+            
+            Scanner keyboard = new Scanner(System.in);
+            System.out.println("You lose.");
+            System.out.println("Please input your name: ");
+            input = "\n" + keyboard.nextLine() + " " + score + " " + timeCounter.result();
+            timehs.inputData(input);
+            keyboard.close();
+            
+            timehs.getData();
+            timehs.renderGame(g);
+        }
+    }
+
+    private void move() {
+
+        for (int z = dots; z > 0; z--) {
+            x[z] = x[(z - 1)];
+            y[z] = y[(z - 1)];
+        }
+
+        if (onFire == true) {
+
+            timer.stop();
+            timer = new Timer(SPRINT, this);
+            timer.start();
+
+        } else {
+
+        	if(slowMotion == true)
+            {
+//            	System.out.println("Slow Motion");
+            	timer.stop();
+                timer = new Timer(300, this);
+                timer.start();
+            }
+            else
+            {
+            	timer.stop();
+                timer = new Timer(DELAY, this);
+                timer.start();
+            }
+        }
+
+        if (leftDirection) {
+            x[0] -= DOT_SIZE;
+        }
+        if (rightDirection) {
+            x[0] += DOT_SIZE;
+        }
+        if (upDirection) {
+            y[0] -= DOT_SIZE;
+        }
+        if (downDirection) {
+            y[0] += DOT_SIZE;
+        }
+
+        if (typeG == 1) {
+        	
+            if (health > 0) 
+            {
+                health--;
+            } else {
+            	
+                inGame = false;
+            }
+        }
+    }
+
+    private void checkApple() {
+
+        if ((x[0] == apple_x) && (y[0] == apple_y)) {
+
+            if (typeG == 1) {
+
+                dots++;
+                locateApple();
+
+                if (dots == gold + 1) {
+                	
+                    score += 10;
+                    gold += 5;
+                    if(health + 50 > 150)
+                    {
+                    	health = 150;
+                    }
+                    else
+                    {
+                    	health += 50;
+                    }
+                    slowMotion = false;
+                    onFire = true;
+                } 
+                else if(dots == blue + 1)
+                {
+                	score++;
+                	blue += 5;
+                	if(health + 40 > 150)
+                    {
+                    	health = 150;
+                    }
+                    else
+                    {
+                    	health += 40;
+                    }
+                	slowMotion = true;
+                }
+                else {
+                	
+                    score++;
+                    if(health + 30 > 150)
+                    {
+                    	health = 150;
+                    }
+                    else
+                    {
+                    	health += 30;
+                    }
+                    slowMotion = false;
+                    onFire = false;
+                }
+                      
+                if (score >= 1) {
+                    for (int i = 0; i < 20; i++) {
+                    	
+                        locateObstacle();
+                        obsX[i] = obs_x;
+                        obsY[i] = obs_y;
+
+                        if (obsX[i] <= x[0] + 10 && obsX[i] >= x[0] - 10 && obsY[i] <= y[0] + 10 && obsY[i] >= y[0] - 10) {
+                        	
+                            locateObstacle();
+                            obsX[i] = obs_x;
+                            obsY[i] = obs_y;
+                        }
+
+                        if (obsX[i] == apple_x && obsY[i] == apple_y) {
+                        	
+                            locateObstacle();
+                            obsX[i] = obs_x;
+                            obsY[i] = obs_y;
+                        }
+                    }
+                }
+            }
+
+            else if (typeG == 2) {
+
+                dots++;
+                score++;
+                locateApple();
+
+                if (dots == gold) {
+                	
+                    gold += 5;
+                    score++;
+                    onFire = true;
+                } else {
+                	
+                    onFire = false;
+                }
+
+                for (int i = 0 ; i < 299 ; i++) {
+                    if (obsXP[i] == apple_x && obsYP[i] == apple_y) {
+                    	
+                        locateApple();
+                    }
+                }
+
+            }
+        }
+    }
+
+    private void checkObstacle() {
+
+    	if (typeG == 1)
+    	{
+    		for (int i = 0; i < 20; i++) {
+                if ((x[0] == obsX[i]) && (y[0] == obsY[i])) {
+
+                    inGame = false;
+                }
+            }
+    	}
+    	else if (typeG == 2)
+    	{
+    		for (int i = 0; i < 299; i++) {
+                if ((x[0] == obsXP[i]) && (y[0] == obsYP[i])) {
+
+                    inGame = false;
+                }
+            }
+    	}
+
+        if (!inGame) {
+        	
+            timer.stop();
+        }
+    }
+
+    private void checkCollision() {
+
+        for (int z = dots; z > 0; z--) {
+
+            if ((z > 4) && (x[0] == x[z]) && (y[0] == y[z])) {
+            	
+                inGame = false;
+            }
+        }
+
+        if (y[0] >= B_HEIGHT) {
+        	
+            y[0] = 70;
+        }
+
+        if (y[0] < 70) {
+        	
+        	y[0] = B_HEIGHT;
+        }
+
+        if (x[0] >= B_WIDTH) {
+        	
+        	x[0] = 0;
+        }
+
+        if (x[0] < 0) {
+        	
+        	x[0] = B_WIDTH;
+        }
+
+        if (!inGame) {
+        	
+            timer.stop();
+        }
+    }
+
+    private void locateApple() {
+
+        int r = (int) (Math.random() * RAND_POS);
+        apple_x = ((r * DOT_SIZE));
+
+        r = (int) (Math.random() * RAND_POS);
+        apple_y = ((r * DOT_SIZE) + 80);
+    }
+
+    private void locateObstacle() {
+        int s = (int) (Math.random() * RAND_POS);
+        obs_x = ((s * DOT_SIZE));
+
+        s = (int) (Math.random() * RAND_POS);
+        obs_y = ((s * DOT_SIZE) + 80);
+    }
+
+    @Override
+    public void actionPerformed(final ActionEvent e) {
+
+        if (inGame) {
+        	
+            checkApple();
+            checkCollision();
+            checkObstacle();
+
+            move();
+            
+            timeCounter.actionPerformed();
+        }
+
+        repaint();
+    }
+
+    private class TAdapter extends KeyAdapter {
+
+        @Override
+        public void keyPressed(final KeyEvent e) {
+
+            final int key = e.getKeyCode(); // Input Key (Analog)
+
+            if (inGame == true) {
+
+                if ((key == KeyEvent.VK_LEFT || key == KeyEvent.VK_A) && (!rightDirection)) {
+
+                	final ImageIcon iih = new ImageIcon("src/resources/images/lefthead.png");
+                    head = iih.getImage();
+                    
+                    leftDirection = true;
+                    upDirection = false;
+                    downDirection = false;
+                }
+
+                if ((key == KeyEvent.VK_RIGHT || key == KeyEvent.VK_D) && (!leftDirection)) {
+                	
+                	final ImageIcon iih = new ImageIcon("src/resources/images/righthead.png");
+                    head = iih.getImage();
+                    
+                    rightDirection = true;
+                    upDirection = false;
+                    downDirection = false;
+                }
+
+                if ((key == KeyEvent.VK_UP || key == KeyEvent.VK_W) && (!downDirection)) {
+                	
+                	final ImageIcon iih = new ImageIcon("src/resources/images/uphead.png");
+                    head = iih.getImage();
+                    
+                    upDirection = true;
+                    rightDirection = false;
+                    leftDirection = false;
+                }
+
+                if ((key == KeyEvent.VK_DOWN || key == KeyEvent.VK_S) && (!upDirection)) {
+                	
+                	final ImageIcon iih = new ImageIcon("src/resources/images/downhead.png");
+                    head = iih.getImage();
+                    
+                    downDirection = true;
+                    rightDirection = false;
+                    leftDirection = false;
+                }
+            } 
+            else {
+
+                if (key == KeyEvent.VK_SPACE) {
+                	
+                	final ImageIcon iih = new ImageIcon("src/resources/images/righthead.png");
+                    head = iih.getImage();
+                    
+                    inGame = true;
+                    inMenu = false;
+                    onFire = false;
+                    upDirection = false;
+                    downDirection = false;
+                    leftDirection = false;
+                    rightDirection = true;
+                    timehs.reset();
+                    normalhs.reset();
+                    timer.stop();
+                    initGame();
+                }
+            }
+        }
+    }
+
+    public class MouseInput implements MouseListener {
+
+        @Override
+        public void mouseClicked(final MouseEvent e) {
+
+        }
+
+        @Override
+        public void mousePressed(final MouseEvent e) {
+        	
+        	final int mx = e.getX();
+            final int my = e.getY();
+//            System.out.println(mx);
+//            System.out.println(my);
+            
+            if (inMenu == true) {
+
+                if (mx >= 110 && mx <= 380) {
+                    if (my >= 240 && my <= 300) {
+                    	
+                        inGame = true;
+                        inMenu = false;
+                        typeG = 1;
+                        initGame();
+                    }
+                }
+
+                if (mx >= 110 && mx <= 380) {
+                    if (my >= 320 && my <= 380) {
+                    	
+                        inGame = true;
+                        inMenu = false;
+                        typeG = 2;
+                        initGame();
+                    }
+                }
+
+                if (mx >= 110 && mx <= 380) {
+                    if (my >= 400 && my <= 460) {
+                    	if(inMenu)
+                    	{
+//                    		System.out.print("HighScore");
+                    		inHs = true;
+                    		inMenu = false;
+                    		normalhs.getData();
+                    		normalhs.renderMenu(getGraphics());
+                    	}        
+                    }
+                }
+            }
+            
+            if (inHs == true && inMenu == false)
+            {
+            	if (mx >= 250 && mx <= 400) {
+                    if (my >= 50 && my <= 100) {
+                    	
+                    	timehs.getData();
+                    	timehs.renderMenu(getGraphics());
+                    }
+            	}
+            	
+            	if (mx >= 90 && mx <= 250) {
+                    if (my >= 50 && my <= 100) {
+                    	
+                    	normalhs.getData();
+                    	normalhs.renderMenu(getGraphics());
+                    }
+            	}
+            }
+        }
+
+        @Override
+        public void mouseReleased(final MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseEntered(final MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseExited(final MouseEvent e) {
+    		
+    	}
+    }    
+}
