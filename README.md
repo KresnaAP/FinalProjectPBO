@@ -1,5 +1,5 @@
 # Final Project Pemrograman Berbasis Objek
-### Membuat Game Snake 2D Java
+## Membuat Game Snake 2D Java
 
 #### How to run :
-run Snake Class
+run `Snake.java`
