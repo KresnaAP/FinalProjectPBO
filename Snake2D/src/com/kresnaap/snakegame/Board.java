@@ -821,8 +821,10 @@ public class Board extends JPanel implements ActionListener {
 //            System.out.println(mx);
 //            System.out.println(my);
             
-            if (inMenu == true) {
-
+            if (inMenu == true && inHs == false) {
+            	
+//            	System.out.println(inMenu);
+//            	System.out.println(inHs);
                 if (mx >= 110 && mx <= 380) {
                     if (my >= 240 && my <= 300) {
                     	
@@ -845,7 +847,7 @@ public class Board extends JPanel implements ActionListener {
 
                 if (mx >= 110 && mx <= 380) {
                     if (my >= 400 && my <= 460) {
-                    	if(inMenu)
+                    	if(inMenu == true)
                     	{
 //                    		System.out.print("HighScore");
                     		inHs = true;
@@ -862,6 +864,7 @@ public class Board extends JPanel implements ActionListener {
             	if (mx >= 250 && mx <= 400) {
                     if (my >= 50 && my <= 100) {
                     	
+                    	// Render TimeAttack Highscore
                     	timehs.getData();
                     	timehs.renderMenu(getGraphics());
                     }
@@ -870,8 +873,19 @@ public class Board extends JPanel implements ActionListener {
             	if (mx >= 90 && mx <= 250) {
                     if (my >= 50 && my <= 100) {
                     	
+                    	// Render Normal Highscore
                     	normalhs.getData();
                     	normalhs.renderMenu(getGraphics());
+                    }
+            	}
+            	
+            	if (mx >= 30 && mx <= 120) {
+                    if (my >= 445 && my <= 480) {
+                    	
+                    	// Back to Menu
+                    	inMenu = true;
+                    	inHs = false;
+                    	menu.render(getGraphics());
                     }
             	}
             }
